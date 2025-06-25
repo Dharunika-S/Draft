@@ -1,18 +1,50 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { API_URL } from "../../api/apiConfig";
 
-
 export const generateDocuments = createAsyncThunk(
   'project/generateDocuments',
-  async (projectData, { rejectWithValue }) => {
+  async (formData, { rejectWithValue }) => {
     try {
-      const response = await API_URL.post('/generate-document', projectData, {
-        responseType: 'blob' 
+      const response = await API_URL.post('/generate-document', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        responseType: 'blob'
       });
-      
-      return { blob: response.data, filename: response.headers['content-disposition']?.split('filename=')[1].replace(/"/g, '') || 'documents.zip' };
+
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'documents.zip';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename\*?=['"]?([^"']+)['"]?$/i);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = decodeURIComponent(filenameMatch[1].replace(/%20/g, ' '));
+        } else {
+          const simpleFilenameMatch = contentDisposition.match(/filename=['"]?([^"']+)['"]?/i);
+          if (simpleFilenameMatch && simpleFilenameMatch[1]) {
+            filename = decodeURIComponent(simpleFilenameMatch[1]);
+          }
+        }
+      }
+
+      // Create download link and trigger download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return { filename };
+
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error || error.message);
+      if (error.response?.data?.type === 'application/json') {
+        const errorData = await error.response.data.text();
+        return rejectWithValue(JSON.parse(errorData).error || "Server error");
+      }
+      return rejectWithValue(error.message || "Document generation failed");
     }
   }
 );
@@ -24,16 +56,21 @@ const projectSlice = createSlice({
     description: '',
     leadFirm: '',
     jvFirm: '',
-    documentDate: new Date().toISOString().split('T')[0], 
-    generatedDocs: null,
+    documentDate: new Date().toISOString().split('T')[0],
     loading: false,
     error: null,
-    geminiApiKey: '', 
+    geminiApiKey: '',
+    downloadStatus: 'idle',
+    downloadFilename: '',
   },
   reducers: {
     setProjectDetails: (state, action) => {
-      state.title = action.payload.title;
-      state.description = action.payload.description;
+      if (action.payload.description !== undefined) {
+        state.description = action.payload.description;
+      }
+      if (action.payload.title !== undefined) {
+        state.title = action.payload.title;
+      }
     },
     setLeadFirm: (state, action) => {
       state.leadFirm = action.payload;
@@ -47,8 +84,10 @@ const projectSlice = createSlice({
     setGeminiApiKey: (state, action) => {
       state.geminiApiKey = action.payload;
     },
-    clearGeneratedDocs: (state) => {
-      state.generatedDocs = null;
+    clearDownloadStatus: (state) => {
+      state.downloadStatus = 'idle';
+      state.downloadFilename = '';
+      state.error = null;
     }
   },
   extraReducers: (builder) => {
@@ -56,18 +95,38 @@ const projectSlice = createSlice({
       .addCase(generateDocuments.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.generatedDocs = null;
+        state.downloadStatus = 'in-progress';
+        state.downloadFilename = '';
       })
       .addCase(generateDocuments.fulfilled, (state, action) => {
         state.loading = false;
-        state.generatedDocs = action.payload;
+        state.downloadStatus = 'success';
+        state.downloadFilename = action.payload.filename;
+        state.error = null;
       })
       .addCase(generateDocuments.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        state.downloadStatus = 'failed';
+        state.downloadFilename = '';
       });
   },
 });
 
-export const { setProjectDetails, setLeadFirm, setJvFirm, setDocumentDate, setGeminiApiKey, clearGeneratedDocs } = projectSlice.actions;
+export const {
+  setProjectDetails,
+  setLeadFirm,
+  setJvFirm,
+  setDocumentDate,
+  setGeminiApiKey,
+  clearDownloadStatus,
+} = projectSlice.actions;
+
 export default projectSlice.reducer;
+
+
+
+
+
+
+

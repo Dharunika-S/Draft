@@ -6,7 +6,7 @@ const chatSlice = createSlice({
     messages: [],
     listening: false,
     transcript: '',
-    // ... other chat-related states
+   
   },
   reducers: {
     addMessage: (state, action) => {
@@ -18,7 +18,7 @@ const chatSlice = createSlice({
     setTranscript: (state, action) => {
       state.transcript = action.payload;
     },
-    // Add more reducers for chat functionality as needed
+  
   },
 });
 
