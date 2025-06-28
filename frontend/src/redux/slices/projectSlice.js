@@ -62,6 +62,10 @@ const projectSlice = createSlice({
     geminiApiKey: '',
     downloadStatus: 'idle',
     downloadFilename: '',
+    personName: '',
+    personAddress: '',
+    projectTitle: '', // New state for project title
+    country: '', // New state for country
   },
   reducers: {
     setProjectDetails: (state, action) => {
@@ -83,6 +87,18 @@ const projectSlice = createSlice({
     },
     setGeminiApiKey: (state, action) => {
       state.geminiApiKey = action.payload;
+    },
+    setPersonName: (state, action) => {
+      state.personName = action.payload;
+    },
+    setPersonAddress: (state, action) => {
+      state.personAddress = action.payload;
+    },
+    setProjectTitle: (state, action) => { // New reducer
+      state.projectTitle = action.payload;
+    },
+    setCountry: (state, action) => { // New reducer
+      state.country = action.payload;
     },
     clearDownloadStatus: (state) => {
       state.downloadStatus = 'idle';
@@ -119,14 +135,11 @@ export const {
   setJvFirm,
   setDocumentDate,
   setGeminiApiKey,
+  setPersonName,
+  setPersonAddress,
+  setProjectTitle, // Export new action
+  setCountry, // Export new action
   clearDownloadStatus,
 } = projectSlice.actions;
 
 export default projectSlice.reducer;
-
-
-
-
-
-
-
