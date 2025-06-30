@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin # Import cross_origin
 import google.generativeai as genai
 from docx import Document
 from docx.shared import Pt
@@ -21,7 +21,8 @@ except ImportError:
     print("WARNING: PyPDF2 not found. PDF extraction will not work. Install with 'pip install PyPDF2'")
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+# Enable CORS for all routes by default
+CORS(app, supports_credentials=True) # This should handle the preflight and actual requests
 
 print("Flask app is initializing...")
 
@@ -101,6 +102,11 @@ class DocumentGenerator:
     """Handles document generation and formatting."""
     def __init__(self):
         self.template_db = TemplateDatabase()
+
+    # Dummy function for current_location, as it's not implemented in the provided code
+    def get_current_location(self):
+        """Returns a hardcoded current location."""
+        return "Chennai, Tamil Nadu, India" # Replace with actual location logic if needed
 
     def extract_template_format(self, doc_content):
         """Extracts formatting from a DOCX file."""
@@ -225,16 +231,16 @@ class DocumentGenerator:
 
     def apply_template_formatting_exact(self, format_info, new_content_lines):
         """
-        AThe Document Generation Flask Application has been updated to use the
+        The Document Generation Flask Application has been updated to use the
         extracted person's address for the "[To address]" placeholder.
 
         Key Changes:
         * The `generate_content_with_placeholders` function now accepts `person_address`
-            as an argument.
+          as an argument.
         * The prompt within `generate_content_with_placeholders` has been modified
-            to replace `[To address]` with `{person_address if person_address else ''}`.
+          to replace `[To address]` with `{person_address if person_address else ''}`.
         * The call to `generate_content_with_placeholders` in the `generate_document`
-            route has been updated to pass the `person_address` parameter.
+          route has been updated to pass the `person_address` parameter.
         """
         new_doc = Document()
         # Create an iterator for the generated content lines
@@ -261,7 +267,7 @@ class DocumentGenerator:
                 # print(f"DEBUG: Matching original_para_idx={original_para_index} ('{original_text.strip()[:50]}...') with new_text='{new_paragraph_text.strip()[:50]}...'")
 
             except StopIteration:
-              
+            
                 print(f"DEBUG: Ran out of generated content lines at original_para_idx={original_para_index}. Stopping.")
                 break
 
